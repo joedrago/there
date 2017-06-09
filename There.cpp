@@ -66,7 +66,24 @@ static void moveForegroundWindow(Action & action, HWND unlessItIsThisWindow)
     if (foregroundWindow == unlessItIsThisWindow) {
         return;
     }
-    MoveWindow(foregroundWindow, action.x, action.y, action.w, action.h, TRUE);
+
+    RECT destinationRect = { action.x, action.y, action.w, action.h };
+
+    // Awful hack: Windows like Visual Studio draw their own borders and completely lie about
+    // where their window rect is. Adjust the move location accordingly.
+    {
+        RECT windowRect;
+        GetWindowRect(foregroundWindow, &windowRect);
+        RECT clientRect;
+        GetClientRect(foregroundWindow, &clientRect);
+        if (((windowRect.right - windowRect.left) == clientRect.right) && ((windowRect.bottom - windowRect.top) == clientRect.bottom)) {
+            destinationRect.left += 7;   // TODO: Replace magic number
+            destinationRect.right -= 14; // TODO: Replace magic number
+            destinationRect.bottom -= 7; // TODO: Replace magic number
+        }
+    }
+
+    MoveWindow(foregroundWindow, destinationRect.left, destinationRect.top, destinationRect.right, destinationRect.bottom, TRUE);
 }
 
 static void onHotKey(HWND hDlg, int id)
